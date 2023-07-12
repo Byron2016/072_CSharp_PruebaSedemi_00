@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using PruebaSedemi_00.API.Repositories;
 using PruebaSedemi_00.MVC.Data;
+using PruebaSedemi_00.MVC.Repositories;
 
 namespace PruebaSedemi_00.MVC
 {
@@ -12,12 +13,13 @@ namespace PruebaSedemi_00.MVC
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+            var connectionString = builder.Configuration.GetConnectionString("PruebaSedemi") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(connectionString));
 
 
             builder.Services.AddScoped<IPokemonRepositoryAPI, PokemonRepositoryAPI>();
+            builder.Services.AddScoped<IPokemonRepositoryDB, PokemonRepositoryDB>();
 
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 

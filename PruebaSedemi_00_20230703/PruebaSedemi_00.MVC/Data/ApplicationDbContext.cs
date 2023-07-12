@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using PruebaSedemi_00.MVC.Data.Entities;
 
 namespace PruebaSedemi_00.MVC.Data
 {
@@ -9,5 +10,7 @@ namespace PruebaSedemi_00.MVC.Data
             : base(options)
         {
         }
+
+        public DbSet<Pokemon> Pokemons { get; set; }
     }
 }

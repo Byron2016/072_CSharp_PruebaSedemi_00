@@ -1,0 +1,92 @@
+﻿@model PruebaSedemi_00.MVC.ViewModels.PokemonViewModel ;
+
+@{
+    ViewData["Title"] = "Pokemon List Page";
+    string uriLastRecord = "";
+    string urlRetorn = ViewData["urlRetorn"].ToString();
+}
+
+<div class="text-center">
+    @if (@Model.Results != null)
+    {
+        Uri myUri = new Uri("https://localhost.com/", UriKind.Absolute);
+        if (Model.Next != null)
+        {
+            string str = (string)Model.Next;
+            myUri = new Uri(str, UriKind.Absolute);
+        }
+        else
+        {
+            if (Model.Previous != null)
+            {
+                string str = (string)Model.Previous;
+                myUri = new Uri(str, UriKind.Absolute);
+            } else
+            {
+                var pathValue = $"{Context.Request.Path.Value}";
+                var queryString = $"{Context.Request.QueryString}";
+
+            }
+        }
+
+        
+        if (Model.Count != null)
+        {
+            string lastRecord = ((Model.Count) - 1).ToString();
+            uriLastRecord = myUri.Scheme + "://" + myUri.Host  + myUri.LocalPath + "?offset=" + lastRecord + "&limit=20";
+
+        }
+        else
+        {
+            uriLastRecord = myUri.Scheme + "//" + myUri.Host +  myUri.LocalPath;
+        }
+
+        <form method="post" asp-route-urlRetorn="@urlRetorn">
+            <table>
+                <thead>
+                    <tr>
+
+                        <th>Name</th>
+                        <th>URL</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (int i = 0; i < @Model.Results.Count; i++)
+                    {
+                        <tr>
+                            <td>
+                                <div class="form-check m-1">
+                                    <input type="hidden" asp-for="@Model.Results[i].Name" />
+                                    <input type="hidden" asp-for="@Model.Results[i].Url" />
+                                    <input asp-for="@Model.Results[i].IsSelected" class="form-check-input" />
+                                    <label class="form-check-label" asp-for="@Model.Results[i].IsSelected">
+                                        @Model.Results[i].Name
+                                    </label>
+                                </div>
+                            </td>
+                            <td>
+                                <a href="@Model.Results[i].Url" target="_blank" rel="noopener">@Model.Results[i].Url</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <div>
+                <a asp-controller="Pokemon" asp-action="Index" class="btn btn-primary" style="width:auto">First</a>
+                <a asp-controller="Pokemon" asp-action="Index" asp-route-url="@Model.Previous" class="btn btn-primary" style="width:auto">Previous</a>
+                <a asp-controller="Pokemon" asp-action="Index" asp-route-url="@Model.Next" class="btn btn-primary" style="width:auto">Next</a>
+                <a asp-controller="Pokemon" asp-action="Index" asp-route-url="@uriLastRecord" class="btn btn-primary" style="width:auto">Last</a>
+
+
+                <input type="submit" value="Guardar" class="btn btn-primary" style="width:auto" />
+                <a asp-controller="Home" asp-action="Index" class="btn btn-primary" style="width:auto">Cancel</a>
+            </div>
+        </form>
+
+    }
+    else
+    {
+        <h1 class="display-4">No hay datos</h1>
+        
+    }
+</div>

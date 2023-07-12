@@ -282,3 +282,414 @@
             }
         }
       ```
+
+- Add MVC project logic
+
+  - Add conexion string
+    ```cs
+      {
+        "ConnectionStrings": {
+          "PruebaSedemi": "Server=(localdb)\\mssqllocaldb;Database=PruebaSedemi_20230703;Trusted_Connection=True;MultipleActiveResultSets=true"
+          ....
+        },
+        ....
+      }
+    ```
+  - Call ConnectionString from **program.cs**
+  - Update Database
+    ```bash
+      dotnet ef database update
+    ```
+  - Add Entities
+
+    ```cs
+      using System.ComponentModel.DataAnnotations;
+
+      namespace PruebaSedemi_00.MVC.Data.Entities
+      {
+          public class Pokemon
+          {
+              [Required]
+              [Key]
+              public string Name { get; set; }
+              [Required]
+              public string Url { get; set; }
+              [Required]
+              public bool IsSelected { get; set; }
+          }
+      }
+    ```
+
+    - Create a new DBSet into context
+    - Add a new migration for the new DBSet
+      ```bash
+        dotnet ef migrations add  Pokemons_Table
+      ```
+    - Update Database.
+
+  - Add ViewModel
+
+    ```cs
+      using PruebaSedemi_00.MVC.Data.Entities;
+
+      namespace PruebaSedemi_00.MVC.ViewModels
+      {
+          public class PokemonViewModel
+          {
+              public int? Count { get; set; }
+              public object? Next { get; set; }
+              public object? Previous { get; set; }
+              public List<Pokemon>? Results { get;      set; }
+          }
+      }
+    ```
+
+  - Add Repositories
+
+    - Add Interfase
+
+      ```cs
+        using PruebaSedemi_00.MVC.Data.Entities;
+
+        namespace PruebaSedemi_00.MVC.Repositories
+        {
+            public interface IPokemonRepositoryDB
+            {
+                Task<Pokemon> GetByName(string name);
+                Task<int> Update(Pokemon pokemon);
+                Task<int> Insert(Pokemon pokemon);
+            }
+        }
+      ```
+
+    - Add Repository
+
+      ```cs
+        using Microsoft.EntityFrameworkCore;
+        using PruebaSedemi_00.MVC.Data;
+        using PruebaSedemi_00.MVC.Data.Entities;
+        using System.Net;
+
+        namespace PruebaSedemi_00.MVC.Repositories
+        {
+            public class PokemonRepositoryDB :        IPokemonRepositoryDB
+            {
+                private readonly ApplicationDbContext         _context;
+
+                public PokemonRepositoryDB        (ApplicationDbContext context)
+                {
+                    _context = context;
+                }
+                public async Task<Pokemon> GetByName        (string name)
+                {
+                    try
+                    {
+                        Pokemon? pokemons = await         _context.Pokemons.        FirstOrDefaultAsync(x => x.Name         == name);
+                        if (pokemons != null)
+                        {
+                            return pokemons;
+                        }
+
+                        return new Pokemon();
+
+                    }
+                    catch (Exception e)
+                    {
+                        //TODO
+                        var a = e;
+                        return new Pokemon();
+                    }
+                }
+
+                public async Task<int> Insert(Pokemon         model)
+                {
+                    try
+                    {
+                        Pokemon? pokemon = await        _context.Pokemons.      FirstOrDefaultAsync(x => x.Name       == model.Name);
+                        if (pokemon == null)
+                        {
+                            var result = await _context.        Pokemons.AddAsync(model);
+                            await _context.       SaveChangesAsync();
+                            //_context.SaveChanges();
+
+                            return 1;
+                        }
+                        else
+                        {
+                            return 1;
+                        }
+
+                    }
+                    catch (Exception e)
+                    {
+                        //TODO
+                        var a = e;
+                        return 0;
+                    }
+                }
+
+                public async Task<int> Update(Pokemon         model)
+                {
+                    try
+                    {
+                        Pokemon? pokemon = await        _context.Pokemons.      FirstOrDefaultAsync(x => x.Name       == model.Name);
+                        if (pokemon != null)
+                        {
+                            if (pokemon.Name != model.        Name || pokemon.Url != model.       Url || pokemon.IsSelected !=        model.IsSelected)
+                            {
+                                pokemon.Name = model.       Name;
+                                pokemon.Url = model.Url;
+                                pokemon.IsSelected =        model.IsSelected;
+
+                                var pokemonChanged =        _context.Pokemons.Attach      (pokemon);
+                                pokemonChanged.State =        EntityState.Modified;
+                                _context.SaveChanges();
+
+                                return 1;
+                            }
+                            else
+                            {
+                                return 1;
+                            }
+                        }
+                        else
+                        {
+                            return 2;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        //TODO
+                        var a = e;
+                        return 0;
+                    }
+                }
+
+            }
+        }
+      ```
+
+  - Add Controller
+
+    ```cs
+      using Microsoft.AspNetCore.Mvc;
+      using PruebaSedemi_00.API.Repositories;
+      using PruebaSedemi_00.MVC.Data.Entities;
+      using PruebaSedemi_00.MVC.Repositories;
+      using PruebaSedemi_00.MVC.ViewModels;
+
+      namespace PruebaSedemi_00.MVC.Controllers
+      {
+          public class PokemonController : Controller
+          {
+              private readonly IPokemonRepositoryAPI      _pokemonRepositoryAPI;
+
+              private readonly IPokemonRepositoryDB       _pokemonRepositorDB;
+
+              private IConfiguration _configuration;
+
+              public PokemonController      (IPokemonRepositoryAPI      pokemonRepositoryAPI,     IPokemonRepositoryDB pokemonRepositorDB,      IConfiguration configuration)
+              {
+                  _pokemonRepositoryAPI =       pokemonRepositoryAPI;
+                  _pokemonRepositorDB =       pokemonRepositorDB;
+                  _configuration = configuration;
+              }
+
+              public async Task Testear()
+              {
+
+                  try
+                  {
+                      var pokemonFromDB = await       _pokemonRepositorDB.GetByName     ("test01");
+
+                  }
+                  catch (Exception e)
+                  {
+                      //TODO
+                      var a = e;
+                  }
+              }
+              public async Task<ActionResult> Index     (string url)
+              {
+                  if(url == null)
+                  {
+                      url = _configuration["API_URL"];
+                  }
+
+                  var pokemonFromAPI =      _pokemonRepositoryAPI.GetItems(url);
+                  var pokemons = pokemonFromAPI.      Results;
+
+                  PokemonViewModel pokemonViewModel =       new PokemonViewModel();
+                  pokemonViewModel.Count =      pokemonFromAPI.Count;
+                  pokemonViewModel.Next =       pokemonFromAPI.Next;
+                  pokemonViewModel.Previous =       pokemonFromAPI.Previous;
+
+                  if (pokemons != null)
+                  {
+                      List<Pokemon> pokemonsTemp = new      List<Pokemon>();
+
+                      foreach (var pokemon in pokemons)
+                      {
+                          var pokemonFromDB = await       _pokemonRepositorDB.GetByName     (pokemon.Name);
+
+                          if (pokemonFromDB != null &&      pokemonFromDB.Name != null)
+                          {
+                              pokemonsTemp.Add(
+                                  new Pokemon
+                                  {
+                                      Name = pokemon.     Name,
+                                      Url = pokemon.      Url,
+                                      IsSelected =      pokemonFromDB.    IsSelected
+                                  });
+                          }
+                          else
+                          {
+                              pokemonsTemp.Add(
+                                  new Pokemon
+                                  {
+                                      Name = pokemon.     Name,
+                                      Url = pokemon.      Url,
+                                      IsSelected =      pokemon.    IsSelected
+                                  });
+                          }
+                      }
+
+                      pokemonViewModel.Results =      pokemonsTemp;
+
+                  }
+
+                  ViewData["urlRetorn"] = url;
+                  return View(pokemonViewModel);
+              }
+
+              [HttpPost]
+              [ValidateAntiForgeryToken]
+              public async Task<ActionResult> Index     (PokemonViewModel model, string     urlRetorn)
+              {
+                  if (model.Results != null)
+                  {
+                      foreach (var pokemon in model.      Results)
+                      {
+                          Pokemon pok = new Pokemon()
+                          {
+                              Name = pokemon.Name,
+                              Url = pokemon.Url,
+                              IsSelected = pokemon.     IsSelected
+                          };
+
+                          var resul = await       _pokemonRepositorDB.Update      (pok);
+
+                          if (resul == 2)
+                          {
+                              //No existe en base hay       que insertarlo.
+                              resul = await       _pokemonRepositorDB.      Insert(pok);
+                          }
+
+                          if (resul == 0)
+                          {
+                              Console.WriteLine     ($"Existio un problema      con {pokemon.Name}");
+                          }
+                      }
+                  }
+
+                  return RedirectToAction("index",      "Pokemon", new { url = urlRetorn });
+              }
+          }
+      }
+    ```
+
+  - Add Views
+    ```cs
+      @model PruebaSedemi_00.MVC.ViewModels.PokemonViewModel ;
+
+      @{
+          ViewData["Title"] = "Pokemon List Page";
+          string uriLastRecord = "";
+          string urlRetorn = ViewData["urlRetorn"].ToString();
+      }
+
+      <div class="text-center">
+          @if (@Model.Results != null)
+          {
+              Uri myUri = new Uri("https://localhost.com/",         UriKind.Absolute);
+              if (Model.Next != null)
+              {
+                  string str = (string)Model.Next;
+                  myUri = new Uri(str, UriKind.Absolute);
+              }
+              else
+              {
+                  if (Model.Previous != null)
+                  {
+                      string str = (string)Model.Previous;
+                      myUri = new Uri(str, UriKind.Absolute);
+                  } else
+                  {
+                      var pathValue = $"{Context.Request.Path.        Value}";
+                      var queryString = $"{Context.Request.       QueryString}";
+
+                  }
+              }
+
+
+              if (Model.Count != null)
+              {
+                  string lastRecord = ((Model.Count) - 1).ToString        ();
+                  uriLastRecord = myUri.Scheme + "://" + myUri.       Host  + myUri.LocalPath + "?offset=" +        lastRecord + "&limit=20";
+
+              }
+              else
+              {
+                  uriLastRecord = myUri.Scheme + "//" + myUri.Host        +  myUri.LocalPath;
+              }
+
+              <form method="post" asp-route-urlRetorn="@urlRetorn">
+                  <table>
+                      <thead>
+                          <tr>
+
+                              <th>Name</th>
+                              <th>URL</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+                          @for (int i = 0; i < @Model.Results.        Count; i++)
+                          {
+                              <tr>
+                                  <td>
+                                      <div class="form-check m-1">
+                                          <input type="hidden"        asp-for="@Model.Results       [i].Name" />
+                                          <input type="hidden"        asp-for="@Model.Results       [i].Url" />
+                                          <input asp-for="@Model.       Results[i].IsSelected"        class="form-check-input"      />
+                                          <label        class="form-check-label"        asp-for="@Model.Results     [i].IsSelected">
+                                              @Model.Results[i].        Name
+                                          </label>
+                                      </div>
+                                  </td>
+                                  <td>
+                                      <a href="@Model.Results[i].       Url" target="_blank"        rel="noopener">@Model.Results     [i].Url</a>
+                                  </td>
+                              </tr>
+                          }
+                      </tbody>
+                  </table>
+                  <div>
+                      <a asp-controller="Pokemon"         asp-action="Index" class="btn btn-primary"        style="width:auto">First</a>
+                      <a asp-controller="Pokemon"         asp-action="Index" asp-route-url="@Model.       Previous" class="btn btn-primary"       style="width:auto">Previous</a>
+                      <a asp-controller="Pokemon"         asp-action="Index" asp-route-url="@Model.       Next" class="btn btn-primary"       style="width:auto">Next</a>
+                      <a asp-controller="Pokemon"         asp-action="Index"        asp-route-url="@uriLastRecord" class="btn       btn-primary" style="width:auto">Last</a>
+
+
+                      <input type="submit" value="Guardar"        class="btn btn-primary" style="width:auto" />
+                      <a asp-controller="Home" asp-action="Index"         class="btn btn-primary"         style="width:auto">Cancel</a>
+                  </div>
+              </form>
+
+          }
+          else
+          {
+              <h1 class="display-4">No hay datos</h1>
+
+          }
+      </div>
+    ```
