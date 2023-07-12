@@ -15,4 +15,8 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.16" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\PruebaSedemi_00.API\PruebaSedemi_00.API.csproj" />
+  </ItemGroup>
+
 </Project>
