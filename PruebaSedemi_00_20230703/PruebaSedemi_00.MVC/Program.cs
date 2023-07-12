@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using PruebaSedemi_00.API.Repositories;
 using PruebaSedemi_00.MVC.Data;
 
 namespace PruebaSedemi_00.MVC
@@ -14,6 +15,10 @@ namespace PruebaSedemi_00.MVC
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(connectionString));
+
+
+            builder.Services.AddScoped<IPokemonRepositoryAPI, PokemonRepositoryAPI>();
+
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
             builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
